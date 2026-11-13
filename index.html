@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Интерактивное приложение по теореме Пифагора для 8 класса: теория, доказательство, калькулятор, тренажёр, тест.">
+<meta name="color-scheme" content="light dark">
+<title>Теорема Пифагора</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap">
+<style>
+/* Идея: тетрадь в клетку. День: синяя паста на белом листе. Ночь: мел на школьной доске.
+   Цвета фигур постоянны во всём приложении: катет a синий, катет b жёлтый, гипотенуза c розовая. */
+:root{
+  --paper:#F5F8FD; --sheet:#FFFFFF; --grid:#DDE7F6; --line:#C5D2E8;
+  --ink:#14203D; --ink-soft:#4A5778;
+  --pen:#2346D6; --on-pen:#FFFFFF; --pen-soft:#E5ECFF;
+  --a:#2F5BEA; --a-soft:#DCE5FF; --a-text:#1D3FBF;
+  --b:#E39B0B; --b-soft:#FFEFC8; --b-text:#865600;
+  --c:#D6338F; --c-soft:#FFDDEE; --c-text:#A51E67;
+  --ok:#17794A; --ok-soft:#DCF3E5;
+  --bad:#B72B2B; --bad-soft:#FCE0DE;
+  --f-display:'Unbounded','Onest',system-ui,sans-serif;
+  --f-body:'Onest',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --f-hand:'Caveat','Segoe Print','Comic Sans MS',cursive;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#121D1B; --sheet:#1A2826; --grid:#1F302D; --line:#32504A;
+    --ink:#E8EFE9; --ink-soft:#A8B9B0;
+    --pen:#8DB1FF; --on-pen:#0E1816; --pen-soft:#22345C;
+    --a:#7FA6FF; --a-soft:#23365E; --a-text:#A2BFFF;
+    --b:#F2BE4B; --b-soft:#4A3B14; --b-text:#F4C65F;
+    --c:#FF8CC9; --c-soft:#4C2340; --c-text:#FFA3D6;
+    --ok:#7ED69B; --ok-soft:#1D3D2B;
+    --bad:#FF9892; --bad-soft:#4A2422;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#121D1B; --sheet:#1A2826; --grid:#1F302D; --line:#32504A;
+  --ink:#E8EFE9; --ink-soft:#A8B9B0;
+  --pen:#8DB1FF; --on-pen:#0E1816; --pen-soft:#22345C;
+  --a:#7FA6FF; --a-soft:#23365E; --a-text:#A2BFFF;
+  --b:#F2BE4B; --b-soft:#4A3B14; --b-text:#F4C65F;
+  --c:#FF8CC9; --c-soft:#4C2340; --c-text:#FFA3D6;
+  --ok:#7ED69B; --ok-soft:#1D3D2B;
+  --bad:#FF9892; --bad-soft:#4A2422;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; font:16px/1.55 var(--f-body); color:var(--ink);
+  background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--sheet)}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+p{margin:0}
+sup{font-size:.62em;line-height:0;vertical-align:.55em;font-weight:inherit}
+h1,h2,h3{margin:0;text-wrap:balance;font-family:var(--f-display);line-height:1.15;letter-spacing:-.015em}
+h1{font-size:clamp(28px,8.4vw,44px);font-weight:700}
+h2{font-size:clamp(20px,5.2vw,26px);font-weight:500}
+h3{font-size:16px;font-weight:500}
+:focus-visible{outline:3px solid var(--pen);outline-offset:2px}
+
+/* шапка и вкладки */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--sheet);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;padding-top:10px}
+.brand svg{width:34px;height:auto;flex:none}
+.brand b{font:700 15px var(--f-display);letter-spacing:-.01em}
+.brand .grade{margin-left:auto;font:600 24px/1 var(--f-hand);color:var(--ink-soft)}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:8px 0 10px;scrollbar-width:thin}
+.tabs a{flex:none;padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);color:var(--ink-soft);text-decoration:none;font-weight:600;font-size:14px;min-height:40px;display:flex;align-items:center}
+.tabs a[aria-current="page"]{background:var(--pen);border-color:var(--pen);color:var(--on-pen)}
+
+main{padding-block:18px 56px}
+.view{display:grid;gap:18px;min-width:0}
+.view>*{min-width:0}
+
+/* общие элементы */
+.hero{display:grid;gap:12px;padding-top:4px}
+.formula{font:700 clamp(30px,10vw,56px)/1.05 var(--f-display);letter-spacing:-.03em;display:flex;flex-wrap:wrap;gap:.2em .4em;align-items:baseline}
+.lead{font-size:18px;max-width:46ch}
+.card{background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:14px;min-width:0}
+.va{color:var(--a-text);font-weight:600}
+.vb{color:var(--b-text);font-weight:600}
+.vc{color:var(--c-text);font-weight:600}
+.rad{white-space:nowrap}
+.rad-in{border-top:1.5px solid currentColor;padding:0 2px;margin-left:1px}
+.fine{font-size:14px;color:var(--ink-soft)}
+.btn{font:inherit;font-weight:600;padding:10px 18px;border-radius:10px;border:1.5px solid var(--pen);background:var(--pen);color:var(--on-pen);cursor:pointer;min-height:44px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.btn.ghost{background:transparent;color:var(--pen)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.linkbtn{font:inherit;font-size:14px;background:none;border:none;color:var(--pen);text-decoration:underline;cursor:pointer;padding:8px 0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button,.chip{font:inherit;font-weight:600;font-size:14px;padding:9px 14px;border-radius:10px;border:1.5px solid var(--line);background:var(--sheet);color:var(--ink);cursor:pointer;min-height:44px}
+.seg button[aria-pressed="true"]{border-color:var(--pen);background:var(--pen-soft);color:var(--pen)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:38px;padding:6px 12px;font-variant-numeric:tabular-nums}
+.sliders{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 20px}
+.slider{display:grid;gap:4px;font-weight:600;font-size:15px}
+.slider input{width:100%;min-height:32px;margin:0}
+#th-a,#pf-a{accent-color:var(--a)}
+#th-b,#pf-b{accent-color:var(--b)}
+#pf-t{accent-color:var(--c)}
+output{font-variant-numeric:tabular-nums}
+.readout{display:grid;gap:4px;font-size:17px;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;padding:4px 10px;border-radius:999px;background:var(--ok-soft);color:var(--ok);font-weight:600;font-size:14px;width:fit-content}
+.terms{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.term{display:grid;grid-template-columns:14px 1fr;gap:4px 12px;align-items:start}
+.term .sw{width:14px;height:14px;border-radius:3px;margin-top:6px}
+.term p{grid-column:2}
+.converse{display:grid;gap:8px}
+.go{display:flex;flex-wrap:wrap;gap:10px}
+
+/* фигуры */
+.fig svg,.tri-svg,.bars{display:block;margin:0 auto;max-width:100%;height:auto}
+.tri-svg,.bars{width:100%;max-width:360px}
+.sq-a{fill:var(--a-soft);stroke:var(--a);stroke-width:1.6}
+.sq-b{fill:var(--b-soft);stroke:var(--b);stroke-width:1.6}
+.sq-c{fill:var(--c-soft);stroke:var(--c);stroke-width:1.6}
+.cell-a,.cell-b{stroke-width:1;opacity:.45}
+.cell-a{stroke:var(--a)}
+.cell-b{stroke:var(--b)}
+.tri{fill:var(--sheet);stroke:var(--ink);stroke-width:2.2;stroke-linejoin:round}
+.tri-p{fill:var(--pen-soft);stroke:var(--ink);stroke-width:2;stroke-linejoin:round}
+.mark{fill:none;stroke:var(--ink);stroke-width:1.5}
+.outline{fill:none;stroke:var(--ink);stroke-width:2.5}
+.t{font:700 14px var(--f-body);text-anchor:middle}
+.t-a{fill:var(--a-text)}
+.t-b{fill:var(--b-text)}
+.t-c{fill:var(--c-text)}
+.t-n{fill:var(--ink-soft);font-weight:600;font-size:12px}
+.t-big{font-size:19px}
+.t-ink{fill:var(--ink)}
+
+/* решение в тетради */
+.sol{display:grid;gap:12px;font-size:17px}
+.sol-row{display:grid;grid-template-columns:6.2rem minmax(0,1fr);gap:4px 10px;align-items:baseline}
+.sol .lab{font:600 23px/1 var(--f-hand);color:var(--ink-soft)}
+.sol .steps{display:grid;gap:4px;font-variant-numeric:tabular-nums}
+.ans{font-weight:700}
+@media (max-width:480px){.sol-row{grid-template-columns:1fr}}
+.note{padding:12px 14px;border-radius:10px;background:var(--pen-soft)}
+.fb{padding:12px 14px;border-radius:10px;border:1px solid var(--line)}
+.fb.ok,.verdict.right{background:var(--ok-soft);border-color:var(--ok)}
+.fb.bad{background:var(--bad-soft);border-color:var(--bad)}
+.verdict{padding:12px 14px;border-radius:10px;background:var(--pen-soft);border:1px solid var(--line);font-weight:500}
+
+/* поля */
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.field{display:grid;gap:4px;font-weight:600;font-size:15px}
+.field input[type=text]{font:inherit;font-size:18px;min-height:46px;padding:8px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);width:100%}
+
+/* доказательство */
+.alg{margin:0;padding-left:1.4em;display:grid;gap:12px}
+.alg li{padding-left:4px}
+
+/* тренажёр */
+.prob-text{font-size:18px;max-width:60ch}
+.ansrow{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.ansrow .field{flex:1 1 160px}
+.recent{display:flex;gap:6px;flex-wrap:wrap}
+.recent span{width:26px;height:26px;border-radius:6px;display:grid;place-items:center;font-size:14px;font-weight:700;border:1.5px dashed var(--line)}
+.recent .y{background:var(--ok-soft);border:1.5px solid var(--ok);color:var(--ok)}
+.recent .n{background:var(--bad-soft);border:1.5px solid var(--bad);color:var(--bad)}
+details summary{cursor:pointer;font-weight:600;color:var(--pen);min-height:32px}
+details[open] summary{margin-bottom:10px}
+
+/* тест */
+.prog{height:8px;border-radius:99px;background:var(--grid);overflow:hidden}
+.prog>i{display:block;height:100%;background:var(--pen);border-radius:99px;transition:width .3s}
+.opts{display:grid;gap:10px;border:0;padding:0;margin:0;min-width:0}
+.opts legend{padding:0;margin-bottom:12px;font-size:19px;font-weight:600;max-width:60ch}
+.opt{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--sheet);cursor:pointer;min-height:48px}
+.opt input{margin-top:4px;accent-color:var(--pen);width:18px;height:18px;flex:none}
+.opt:has(input:checked){border-color:var(--pen);background:var(--pen-soft)}
+.opt:has(input:focus-visible){outline:3px solid var(--pen);outline-offset:2px}
+.result{display:grid;gap:6px;justify-items:start}
+.mark-grade{font:600 clamp(80px,26vw,130px)/1 var(--f-hand);color:var(--pen)}
+.miss{display:grid;gap:6px}
+
+/* шпаргалка */
+.sq-table{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
+.sq-cell{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--sheet);font-variant-numeric:tabular-nums;font-size:14px}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:15px}
+th{font-weight:600;color:var(--ink-soft);font-size:13px}
+.frm{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.frm:last-child{border-bottom:0}
+.frm .what{font:600 22px/1.1 var(--f-hand);color:var(--ink-soft)}
+.frm .f{font-size:18px}
+ol.how,ul.bul{margin:0;padding-left:1.4em;display:grid;gap:6px}
+
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <svg viewBox="0 0 28 24" aria-hidden="true">
+        <polygon class="sq-c" points="10,8 18,14 24,6 16,0" style="stroke-width:1"/>
+        <rect class="sq-a" x="10" y="14" width="8" height="8" style="stroke-width:1"/>
+        <rect class="sq-b" x="4" y="8" width="6" height="6" style="stroke-width:1"/>
+        <polygon class="tri" points="10,14 18,14 10,8" style="stroke-width:1.2"/>
+      </svg>
+      <b>Теорема Пифагора</b>
+      <span class="grade">8 класс</span>
+    </div>
+    <nav class="tabs" aria-label="Разделы">
+      <a href="#theory" data-view="theory">Теорема</a>
+      <a href="#proof" data-view="proof">Доказательство</a>
+      <a href="#calc" data-view="calc">Калькулятор</a>
+      <a href="#practice" data-view="practice">Тренажёр</a>
+      <a href="#test" data-view="test">Тест</a>
+      <a href="#cheat" data-view="cheat">Шпаргалка</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ============ ТЕОРЕМА ============ -->
+<section id="view-theory" class="view" hidden>
+  <div class="hero">
+    <h1>Теорема Пифагора</h1>
+    <p class="formula" aria-label="a в квадрате плюс b в квадрате равно c в квадрате"><span class="va">a<sup>2</sup></span> + <span class="vb">b<sup>2</sup></span> = <span class="vc">c<sup>2</sup></span></p>
+    <p class="lead">В прямоугольном треугольнике квадрат гипотенузы равен сумме квадратов катетов.</p>
+  </div>
+
+  <div class="card fig">
+    <h2>Три квадрата на сторонах</h2>
+    <p>Меняйте катеты. Площадь розового квадрата всегда равна сумме площадей синего и жёлтого. Клетки внутри квадратов можно пересчитать.</p>
+    <div class="chips" id="th-chips" aria-label="Готовые примеры">
+      <button type="button" class="chip" data-a="3" data-b="4">3 и 4</button>
+      <button type="button" class="chip" data-a="6" data-b="8">6 и 8</button>
+      <button type="button" class="chip" data-a="5" data-b="12">5 и 12</button>
+      <button type="button" class="chip" data-a="1" data-b="1">1 и 1</button>
+      <button type="button" class="chip" data-a="2" data-b="3">2 и 3</button>
+    </div>
+    <div class="sliders">
+      <label class="slider"><span>Катет <span class="va">a</span> = <output id="th-a-out">3</output></span><input type="range" id="th-a" min="1" max="12" step="1" value="3"></label>
+      <label class="slider"><span>Катет <span class="vb">b</span> = <output id="th-b-out">4</output></span><input type="range" id="th-b" min="1" max="12" step="1" value="4"></label>
+    </div>
+    <svg id="fig-theory" role="img" aria-label="Прямоугольный треугольник с квадратами на каждой стороне"></svg>
+    <div class="readout" id="th-readout" aria-live="polite"></div>
+  </div>
+
+  <div class="terms">
+    <div class="term"><span class="sw" style="background:var(--a)"></span><h3>Катеты <span class="va">a</span> и <span class="vb">b</span></h3><p>Стороны, между которыми прямой угол.</p></div>
+    <div class="term"><span class="sw" style="background:var(--c)"></span><h3>Гипотенуза <span class="vc">c</span></h3><p>Сторона напротив прямого угла. Она самая длинная в треугольнике.</p></div>
+  </div>
+
+  <div class="card converse">
+    <h2>Обратная теорема</h2>
+    <p>Если в треугольнике <span class="va">a<sup>2</sup></span> + <span class="vb">b<sup>2</sup></span> = <span class="vc">c<sup>2</sup></span>, то он прямоугольный.</p>
+    <p>Пример: стороны 5, 12, 13. Считаем 25 + 144 = 169 = 13<sup>2</sup>, значит прямой угол есть.</p>
+    <p class="fine">Если квадрат большей стороны меньше суммы квадратов двух других, треугольник остроугольный. Если больше, тупоугольный.</p>
+  </div>
+
+  <div class="go">
+    <a class="btn" href="#proof">Как это доказать</a>
+    <a class="btn ghost" href="#calc">Решить с калькулятором</a>
+    <a class="btn ghost" href="#practice">Потренироваться</a>
+  </div>
+</section>
+
+<!-- ============ ДОКАЗАТЕЛЬСТВО ============ -->
+<section id="view-proof" class="view" hidden>
+  <h2>Доказательство через площади</h2>
+  <p class="lead">Возьмём квадрат со стороной <span class="va">a</span> + <span class="vb">b</span> и четыре одинаковых прямоугольных треугольника. Передвинем треугольники и посмотрим, что останется.</p>
+  <div class="card fig">
+    <div class="sliders">
+      <label class="slider"><span>Катет <span class="va">a</span> = <output id="pf-a-out">3</output></span><input type="range" id="pf-a" min="1" max="9" step="1" value="3"></label>
+      <label class="slider"><span>Катет <span class="vb">b</span> = <output id="pf-b-out">4</output></span><input type="range" id="pf-b" min="1" max="9" step="1" value="4"></label>
+    </div>
+    <svg id="fig-proof" viewBox="0 0 340 340" role="img" aria-label="Квадрат со стороной a плюс b, в котором переставляют четыре треугольника" style="width:100%;max-width:420px"></svg>
+    <div class="row">
+      <button type="button" class="btn" id="pf-go">Переложить треугольники</button>
+      <label class="slider" style="flex:1 1 180px"><span class="fine">Или двигайте вручную</span><input type="range" id="pf-t" min="0" max="100" step="1" value="0"></label>
+    </div>
+    <p id="pf-cap" aria-live="polite"></p>
+  </div>
+  <div class="card">
+    <h3>Почему так выходит</h3>
+    <ol class="alg" id="pf-alg"></ol>
+    <p class="fine" id="pf-num"></p>
+  </div>
+  <div class="go"><a class="btn" href="#calc">К калькулятору</a><a class="btn ghost" href="#practice">К тренажёру</a></div>
+</section>
+
+<!-- ============ КАЛЬКУЛЯТОР ============ -->
+<section id="view-calc" class="view" hidden>
+  <h2>Калькулятор с решением</h2>
+  <div class="seg" id="calc-modes" role="group" aria-label="Что нужно найти">
+    <button type="button" data-mode="hyp" aria-pressed="true">Найти гипотенузу</button>
+    <button type="button" data-mode="leg" aria-pressed="false">Найти катет</button>
+    <button type="button" data-mode="check" aria-pressed="false">Проверить треугольник</button>
+  </div>
+  <div class="card">
+    <div class="fields" id="calc-fields"></div>
+    <div id="calc-fig"></div>
+  </div>
+  <div class="card" id="calc-out" aria-live="polite"></div>
+</section>
+
+<!-- ============ ТРЕНАЖЁР ============ -->
+<section id="view-practice" class="view" hidden>
+  <h2>Тренажёр</h2>
+  <div class="seg" id="lvl-seg" role="group" aria-label="Уровень">
+    <button type="button" data-lvl="1" aria-pressed="true">1. Тройки</button>
+    <button type="button" data-lvl="2" aria-pressed="false">2. Корни</button>
+    <button type="button" data-lvl="3" aria-pressed="false">3. Задачи</button>
+  </div>
+  <div class="card">
+    <p class="prob-text" id="prob-text"></p>
+    <div id="prob-fig"></div>
+    <form id="prob-form" autocomplete="off" novalidate>
+      <div class="ansrow">
+        <label class="field" for="prob-ans"><span>Ваш ответ</span><input type="text" id="prob-ans" inputmode="decimal" autocomplete="off"></label>
+        <button type="submit" class="btn" id="btn-check">Проверить</button>
+      </div>
+    </form>
+    <p class="fine">Можно писать запятую или точку.</p>
+    <div class="row">
+      <button type="button" class="btn ghost" id="btn-hint">Подсказка</button>
+      <button type="button" class="btn ghost" id="btn-show">Показать решение</button>
+    </div>
+    <div id="prob-fb" aria-live="polite"></div>
+    <div id="prob-sol"></div>
+    <div><button type="button" class="btn ghost" id="btn-next">Пропустить</button></div>
+  </div>
+  <div class="card">
+    <h3>Последние ответы</h3>
+    <div class="recent" id="recent" aria-label="Последние десять ответов"></div>
+    <p class="fine" id="stats-line"></p>
+    <div><button type="button" class="linkbtn" id="reset-stats">Сбросить статистику</button></div>
+  </div>
+</section>
+
+<!-- ============ ТЕСТ ============ -->
+<section id="view-test" class="view" hidden>
+  <div id="test-root" class="view"></div>
+</section>
+
+<!-- ============ ШПАРГАЛКА ============ -->
+<section id="view-cheat" class="view" hidden>
+  <h2>Шпаргалка</h2>
+  <div class="card">
+    <h3>Формулы</h3>
+    <div>
+      <div class="frm"><span class="what">Гипотенуза</span><span class="f"><span class="vc">c</span> = <span class="rad">√<span class="rad-in"><span class="va">a<sup>2</sup></span> + <span class="vb">b<sup>2</sup></span></span></span></span></div>
+      <div class="frm"><span class="what">Катет</span><span class="f"><span class="va">a</span> = <span class="rad">√<span class="rad-in"><span class="vc">c<sup>2</sup></span> − <span class="vb">b<sup>2</sup></span></span></span></span></div>
+      <div class="frm"><span class="what">Диагональ прямоугольника</span><span class="f">d = <span class="rad">√<span class="rad-in">a<sup>2</sup> + b<sup>2</sup></span></span></span></div>
+      <div class="frm"><span class="what">Диагональ квадрата</span><span class="f">d = a<span class="rad">√<span class="rad-in">2</span></span> ≈ 1,41a</span></div>
+      <div class="frm"><span class="what">Высота равностороннего треугольника</span><span class="f">h = <span style="white-space:nowrap">a<span class="rad">√<span class="rad-in">3</span></span> / 2</span> ≈ 0,87a</span></div>
+      <div class="frm"><span class="what">Расстояние между точками</span><span class="f">d = <span class="rad">√<span class="rad-in">(x<sub>2</sub> − x<sub>1</sub>)<sup>2</sup> + (y<sub>2</sub> − y<sub>1</sub>)<sup>2</sup></span></span></span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Как решать задачу</h3>
+    <ol class="how">
+      <li>Найдите прямой угол. Стороны рядом с ним катеты, напротив него гипотенуза.</li>
+      <li>Решите, что неизвестно: гипотенуза или катет.</li>
+      <li>Гипотенуза: сложите квадраты катетов. Катет: вычтите из квадрата гипотенузы квадрат другого катета.</li>
+      <li>Извлеките квадратный корень.</li>
+      <li>Проверьте: гипотенуза должна получиться длиннее каждого катета.</li>
+    </ol>
+  </div>
+  <div class="card">
+    <h3>Частые ошибки</h3>
+    <ul class="bul">
+      <li>Сложили стороны, а не их квадраты: 3 + 4 вместо 3<sup>2</sup> + 4<sup>2</sup>.</li>
+      <li>Забыли извлечь корень: нашли c<sup>2</sup> и записали его как c.</li>
+      <li>Нашли катет сложением вместо вычитания.</li>
+      <li>Применили теорему к треугольнику без прямого угла.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Пифагоровы тройки</h3>
+    <p class="fine">Целые числа, для которых a<sup>2</sup> + b<sup>2</sup> = c<sup>2</sup>. Если умножить тройку на любое число, получится новая тройка.</p>
+    <div class="tbl-wrap"><table><thead><tr><th>Катеты a, b</th><th>Гипотенуза c</th><th>Проверка</th></tr></thead><tbody id="triples"></tbody></table></div>
+  </div>
+  <div class="card">
+    <h3>Квадраты чисел</h3>
+    <div class="sq-table" id="sq-table"></div>
+  </div>
+  <div class="card">
+    <h3>Немного истории</h3>
+    <p>Пифагор жил в Древней Греции примерно в VI веке до нашей эры. Но связь между сторонами такого треугольника знали задолго до него: на вавилонских глиняных табличках около 1800 года до нашей эры записаны наборы чисел, которые ей подчиняются.</p>
+  </div>
+</section>
+
+</main>
+
+<script>
+(function(){
+'use strict';
+document.documentElement.lang='ru';
+
+/* ---------- помощники ---------- */
+const $=(s,r)=>(r||document).querySelector(s);
+const $$=(s,r)=>Array.from((r||document).querySelectorAll(s));
+const SVGNS='http://www.w3.org/2000/svg';
+function S(name,attrs,parent){const n=document.createElementNS(SVGNS,name);for(const k in attrs)n.setAttribute(k,attrs[k]);if(parent)parent.appendChild(n);return n;}
+function T(svg,x,y,txt,cls,extra){const t=S('text',Object.assign({x:x.toFixed(1),y:y.toFixed(1),dy:'.35em','class':cls},extra||{}),svg);t.textContent=txt;return t;}
+function h(tag,props){
+  const n=document.createElement(tag);
+  for(const k in (props||{})){const v=props[k];
+    if(k==='class')n.className=v;
+    else if(k==='text')n.textContent=v;
+    else if(k.indexOf('on')===0)n.addEventListener(k.slice(2),v);
+    else if(v===true)n.setAttribute(k,'');
+    else if(v!==false&&v!=null)n.setAttribute(k,v);}
+  Array.prototype.slice.call(arguments,2).forEach(function(kid){
+    [].concat(kid).forEach(function(c){if(c==null||c===false)return;n.append(c);});});
+  return n;
+}
+const rnd=n=>Math.floor(Math.random()*n);
+const pick=a=>a[rnd(a.length)];
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);const t=a[i];a[i]=a[j];a[j]=t;}return a;}
+const clean=x=>Math.round(x*1e8)/1e8;
+const P=x=>String(clean(+(+x).toFixed(6))).replace('.',',').replace('-','−');
+const A=x=>(+x).toFixed(2).replace('.',',');
+const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+function parseNum(s){s=String(s).trim().replace(/\s+/g,'').replace(',','.');if(s==='')return NaN;return Number(s);}
+const store={
+  get(k,d){try{const v=localStorage.getItem('pyth.'+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},
+  set(k,v){try{localStorage.setItem('pyth.'+k,JSON.stringify(v));}catch(e){}}
+};
+
+/* ---------- запись формул ---------- */
+const V=n=>'<span class="v'+n+'">'+n+'</span>';
+const V2=n=>'<span class="v'+n+'">'+n+'<sup>2</sup></span>';
+const N2=(x,n)=>'<span class="v'+n+'">'+P(x)+'<sup>2</sup></span>';
+const rad=n=>'<span class="rad">√<span class="rad-in">'+P(n)+'</span></span>';
+function simplifyRoot(n){let k=1,m=n;for(let f=2;f*f<=m;f++){while(m%(f*f)===0){m/=f*f;k*=f;}}return{k:k,m:m};}
+function rootParts(n){
+  const r=Math.sqrt(n),nr=Math.round(r);
+  if(Math.abs(nr*nr-n)<1e-6)return{chain:rad(n)+' = '+P(nr),ans:P(nr)};
+  const r3=Math.round(r*1000)/1000;
+  if(Math.abs(r3*r3-n)<1e-9)return{chain:rad(n)+' = '+P(r3),ans:P(r3)};
+  if(Number.isInteger(n)){const q=simplifyRoot(n);if(q.k>1)return{chain:rad(n)+' = '+q.k+rad(q.m)+' ≈ '+A(r),ans:q.k+rad(q.m)+' ≈ '+A(r)};}
+  return{chain:rad(n)+' ≈ '+A(r),ans:rad(n)+' ≈ '+A(r)};
+}
+function solBlock(rows){
+  return '<div class="sol">'+rows.map(function(r){return '<div class="sol-row"><span class="lab">'+r[0]+'</span><div class="steps">'+r[1]+'</div></div>';}).join('')+'</div>';
+}
+/* решение для задачи с известными a, b, c и неизвестной стороной */
+function solutionCore(p){
+  const a=p.a,b=p.b,c=p.c,u=p.unknown;let steps,ans;
+  if(u==='c'){
+    const n=clean(a*a+b*b),r=rootParts(n);
+    steps=['<p>'+V2('c')+' = '+V2('a')+' + '+V2('b')+'</p>',
+      '<p>'+V2('c')+' = '+N2(a,'a')+' + '+N2(b,'b')+' = '+P(a*a)+' + '+P(b*b)+' = '+P(n)+'</p>',
+      '<p>'+V('c')+' = '+r.chain+'</p>'];
+    ans=V('c')+' = '+r.ans;
+  }else{
+    const k=u==='a'?'b':'a',kv=u==='a'?b:a,n=clean(c*c-kv*kv),r=rootParts(n);
+    steps=['<p>'+V2(u)+' = '+V2('c')+' − '+V2(k)+'</p>',
+      '<p>'+V2(u)+' = '+N2(c,'c')+' − '+N2(kv,k)+' = '+P(c*c)+' − '+P(kv*kv)+' = '+P(n)+'</p>',
+      '<p>'+V(u)+' = '+r.chain+'</p>'];
+    ans=V(u)+' = '+r.ans;
+  }
+  return{steps:steps.join(''),ans:ans};
+}
+
+/* ---------- чертёж треугольника ---------- */
+function triSVG(host,o){
+  host.textContent='';
+  const L=Math.max(o.a,o.b),ha=90+120*(o.a/L),hb=60+80*(o.b/L),Cx=70,Cy=176;
+  const svg=S('svg',{viewBox:'0 0 300 210',role:'img','aria-label':o.alt||'Прямоугольный треугольник'},host);
+  svg.setAttribute('class','tri-svg');
+  const B=[Cx+ha,Cy],Ap=[Cx,Cy-hb];
+  S('polygon',{points:Cx+','+Cy+' '+B[0]+','+B[1]+' '+Ap[0]+','+Ap[1],'class':'tri-p'},svg);
+  S('polyline',{points:Cx+','+(Cy-12)+' '+(Cx+12)+','+(Cy-12)+' '+(Cx+12)+','+Cy,'class':'mark'},svg);
+  T(svg,Cx+ha/2,Cy+20,o.la,'t t-a t-big');
+  T(svg,Cx-10,Cy-hb/2,o.lb,'t t-b t-big',{style:'text-anchor:end'});
+  const len=Math.hypot(ha,hb);
+  T(svg,(Cx+B[0])/2+16*hb/len,(Ap[1]+Cy)/2-16*ha/len,o.lc,'t t-c t-big');
+}
+
+/* ---------- маршрутизация ---------- */
+const VIEWS=['theory','proof','calc','practice','test','cheat'];
+function route(){
+  let name=(location.hash||'').slice(1);
+  if(VIEWS.indexOf(name)<0)name='theory';
+  VIEWS.forEach(function(v){$('#view-'+v).hidden=(v!==name);});
+  $$('.tabs a').forEach(function(a){if(a.dataset.view===name)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+  try{const act=$('.tabs a[aria-current]');if(act&&act.scrollIntoView)act.scrollIntoView({inline:'center',block:'nearest'});}catch(e){}
+  window.scrollTo(0,0);
+}
+
+/* ============ ТЕОРЕМА ============ */
+const th={a:3,b:4};
+function drawTheory(){
+  const a=th.a,b=th.b,c2=a*a+b*b;
+  const svg=$('#fig-theory');svg.textContent='';
+  const minX=-b,maxX=a+b,minY=-a,maxY=a+b,pad=.7;
+  const Wu=maxX-minX+2*pad,Hu=maxY-minY+2*pad,U=Math.min(340/Wu,380/Hu);
+  svg.setAttribute('viewBox','0 0 '+(Wu*U).toFixed(1)+' '+(Hu*U).toFixed(1));
+  svg.style.width=(Wu*U).toFixed(0)+'px';
+  const X=x=>(x-minX+pad)*U,Y=y=>(maxY-y+pad)*U;
+  const pts=arr=>arr.map(p=>X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1)).join(' ');
+  const ln=(x1,y1,x2,y2,cls)=>S('line',{x1:X(x1).toFixed(1),y1:Y(y1).toFixed(1),x2:X(x2).toFixed(1),y2:Y(y2).toFixed(1),'class':cls},svg);
+  S('polygon',{points:pts([[0,0],[a,0],[a,-a],[0,-a]]),'class':'sq-a'},svg);
+  S('polygon',{points:pts([[0,0],[0,b],[-b,b],[-b,0]]),'class':'sq-b'},svg);
+  S('polygon',{points:pts([[a,0],[0,b],[b,a+b],[a+b,a]]),'class':'sq-c'},svg);
+  for(let i=1;i<a;i++){ln(i,0,i,-a,'cell-a');ln(0,-i,a,-i,'cell-a');}
+  for(let i=1;i<b;i++){ln(-i,0,-i,b,'cell-b');ln(-b,i,0,i,'cell-b');}
+  S('polygon',{points:pts([[0,0],[a,0],[0,b]]),'class':'tri'},svg);
+  const m=Math.min(.7,a*.45,b*.45);
+  S('polyline',{points:pts([[0,m],[m,m],[m,0]]),'class':'mark'},svg);
+  T(svg,X(a/2),Y(-a/2),a*U>=56?'a² = '+a*a:String(a*a),'t t-a');
+  T(svg,X(-b/2),Y(b/2),b*U>=56?'b² = '+b*b:String(b*b),'t t-b');
+  T(svg,X((a+b)/2),Y((a+b)/2),(a+b)*U>=70?'c² = '+c2:String(c2),'t t-c');
+  if(a*U>=34&&b*U>=34){
+    const c=Math.sqrt(c2),d=13/U;
+    T(svg,X(a/2),Y(Math.min(.55,b/3)),'a','t t-a');
+    T(svg,X(Math.min(.55,a/3)),Y(b/2),'b','t t-b');
+    if(a*U>=44&&b*U>=44)T(svg,X(a/2-d*b/c),Y(b/2-d*a/c),'c','t t-c');
+  }
+  $('#th-a-out').textContent=a;$('#th-b-out').textContent=b;
+  const cr=Math.round(Math.sqrt(c2)),trip=cr*cr===c2;
+  let html='<p>'+V2('a')+' + '+V2('b')+' = '+N2(a,'a')+' + '+N2(b,'b')+' = '+a*a+' + '+b*b+' = <span class="vc">'+c2+'</span></p>';
+  html+='<p>'+V2('c')+' = '+c2+', поэтому '+V('c')+' = '+(trip?cr:rad(c2)+' ≈ '+A(Math.sqrt(c2)))+'</p>';
+  if(trip){html+='<span class="badge">Пифагорова тройка: '+a+', '+b+', '+cr+'</span>';
+    if(a*b===12&&cr===5)html+='<p class="fine">Такой треугольник называют египетским.</p>';}
+  else html+='<p class="fine">Гипотенуза не целая: это не пифагорова тройка.</p>';
+  $('#th-readout').innerHTML=html;
+}
+function bindTheory(){
+  const ia=$('#th-a'),ib=$('#th-b');
+  function set(a,b){th.a=a;th.b=b;ia.value=a;ib.value=b;drawTheory();}
+  ia.addEventListener('input',function(){set(+ia.value,th.b);});
+  ib.addEventListener('input',function(){set(th.a,+ib.value);});
+  $$('#th-chips .chip').forEach(function(btn){btn.addEventListener('click',function(){set(+btn.dataset.a,+btn.dataset.b);});});
+  drawTheory();
+}
+
+/* ============ ДОКАЗАТЕЛЬСТВО ============ */
+const pf={a:3,b:4,t:0,raf:0};
+function drawProof(){
+  const a=pf.a,b=pf.b,t=pf.t,s=a+b,U=320/s;
+  const svg=$('#fig-proof');svg.textContent='';
+  const X=x=>10+x*U,Y=y=>10+y*U;
+  const pts=arr=>arr.map(p=>X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1)).join(' ');
+  const lerp=(p,q)=>[p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t];
+  const op=(el,v)=>{el.style.opacity=String(v);return el;};
+  op(S('polygon',{points:pts([[a,0],[s,a],[b,s],[0,b]]),'class':'sq-c'},svg),1-t);
+  op(S('polygon',{points:pts([[0,0],[a,0],[a,a],[0,a]]),'class':'sq-a'},svg),t);
+  op(S('polygon',{points:pts([[a,a],[s,a],[s,s],[a,s]]),'class':'sq-b'},svg),t);
+  const st=[[[0,0],[a,0],[0,b]],[[s,0],[s,a],[a,0]],[[s,s],[b,s],[s,a]],[[0,s],[0,b],[b,s]]];
+  const en=[[[a,a],[a,0],[s,a]],[[s,0],[s,a],[a,0]],[[a,a],[0,a],[a,s]],[[0,s],[a,s],[0,a]]];
+  st.forEach(function(tri,i){
+    const cur=tri.map(function(p,j){return lerp(p,en[i][j]);});
+    S('polygon',{points:pts(cur),'class':'tri-p'},svg);
+    const cx=(cur[0][0]+cur[1][0]+cur[2][0])/3,cy=(cur[0][1]+cur[1][1]+cur[2][1])/3;
+    T(svg,X(cx),Y(cy),String(i+1),'t t-n');
+  });
+  S('rect',{x:X(0),y:Y(0),width:s*U,height:s*U,'class':'outline'},svg);
+  op(T(svg,X(s/2),Y(s/2),'c²','t t-c t-big'),1-t);
+  op(T(svg,X(a/2),Y(a/2),'a²','t t-a t-big'),t);
+  op(T(svg,X(a+b/2),Y(a+b/2),'b²','t t-b t-big'),t);
+  $('#pf-a-out').textContent=a;$('#pf-b-out').textContent=b;
+  $('#pf-t').value=Math.round(t*100);
+  $('#pf-go').textContent=t<.5?'Переложить треугольники':'Вернуть назад';
+  $('#pf-cap').innerHTML=t<.02?'Квадрат со стороной '+V('a')+' + '+V('b')+' состоит из четырёх треугольников и розового квадрата '+V2('c')+'.'
+    :t>.98?'Те же четыре треугольника. Теперь остались синий квадрат '+V2('a')+' и жёлтый квадрат '+V2('b')+'.'
+    :'Треугольники переезжают на новые места. Их площадь не меняется.';
+}
+function proofText(){
+  const a=pf.a,b=pf.b,s=a+b,ab=V('a')+V('b');
+  $('#pf-alg').innerHTML=
+   '<li>Площадь большого квадрата одна и та же в обоих положениях: ('+V('a')+' + '+V('b')+')<sup>2</sup>.</li>'+
+   '<li>В первом положении это розовый квадрат и четыре треугольника. Площадь одного треугольника ½'+ab+', четырёх 2'+ab+'.<br>('+V('a')+' + '+V('b')+')<sup>2</sup> = '+V2('c')+' + 2'+ab+'</li>'+
+   '<li>Во втором положении это синий и жёлтый квадраты и те же четыре треугольника.<br>('+V('a')+' + '+V('b')+')<sup>2</sup> = '+V2('a')+' + '+V2('b')+' + 2'+ab+'</li>'+
+   '<li>Левые части равны, значит равны и правые: '+V2('c')+' + 2'+ab+' = '+V2('a')+' + '+V2('b')+' + 2'+ab+'. Вычитаем 2'+ab+' из обеих частей и получаем <strong>'+V2('c')+' = '+V2('a')+' + '+V2('b')+'</strong>.</li>';
+  $('#pf-num').textContent='Проверка на числах при a = '+a+' и b = '+b+': ('+a+' + '+b+')² = '+s*s+'; a² + b² + 2ab = '+a*a+' + '+b*b+' + '+2*a*b+' = '+s*s+'.';
+}
+function setT(t){pf.t=t;drawProof();}
+function animateTo(target){
+  cancelAnimationFrame(pf.raf);
+  const from=pf.t,dur=1200*Math.abs(target-from);
+  if(reduce||dur<50){setT(target);return;}
+  const t0=performance.now();
+  const step=function(now){
+    const k=Math.min(1,(now-t0)/dur),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+    setT(from+(target-from)*e);
+    if(k<1)pf.raf=requestAnimationFrame(step);
+  };
+  pf.raf=requestAnimationFrame(step);
+}
+function bindProof(){
+  const ia=$('#pf-a'),ib=$('#pf-b'),it=$('#pf-t');
+  ia.addEventListener('input',function(){pf.a=+ia.value;proofText();drawProof();});
+  ib.addEventListener('input',function(){pf.b=+ib.value;proofText();drawProof();});
+  it.addEventListener('input',function(){cancelAnimationFrame(pf.raf);setT(+it.value/100);});
+  $('#pf-go').addEventListener('click',function(){animateTo(pf.t<.5?1:0);});
+  proofText();drawProof();
+}
+
+/* ============ КАЛЬКУЛЯТОР ============ */
+const calc={mode:'hyp',v:{ha:'6',hb:'8',lc:'13',lb:'5',x:'5',y:'12',z:'13'}};
+const MODES={
+  hyp:[['ha','Катет a','a'],['hb','Катет b','b']],
+  leg:[['lc','Гипотенуза c','c'],['lb','Известный катет b','b']],
+  check:[['x','Сторона 1',''],['y','Сторона 2',''],['z','Сторона 3','']]
+};
+function buildFields(){
+  const wrap=$('#calc-fields');wrap.textContent='';
+  MODES[calc.mode].forEach(function(f){
+    const key=f[0];
+    wrap.append(h('label',{class:'field'},
+      h('span',{class:f[2]?'v'+f[2]:''},f[1]),
+      h('input',{type:'text',id:'f-'+key,inputmode:'decimal',autocomplete:'off',value:calc.v[key],oninput:function(e){calc.v[key]=e.target.value;runCalc();}})));
+  });
+}
+function barsSVG(host,a,b,c){
+  host.textContent='';
+  const sum=a*a+b*b,cc=c*c,mx=Math.max(sum,cc),full=280,x0=10;
+  const svg=S('svg',{viewBox:'0 0 300 128',role:'img','aria-label':'Сравнение суммы квадратов двух меньших сторон и квадрата большей стороны'},host);
+  svg.setAttribute('class','bars');
+  const wa=full*a*a/mx,wb=full*b*b/mx,wc=full*cc/mx;
+  T(svg,x0,12,'a² + b² = '+P(sum),'t t-ink',{style:'text-anchor:start'});
+  S('rect',{x:x0,y:24,width:wa.toFixed(1),height:28,'class':'sq-a'},svg);
+  S('rect',{x:(x0+wa).toFixed(1),y:24,width:wb.toFixed(1),height:28,'class':'sq-b'},svg);
+  T(svg,x0,76,'c² = '+P(cc),'t t-ink',{style:'text-anchor:start'});
+  S('rect',{x:x0,y:88,width:wc.toFixed(1),height:28,'class':'sq-c'},svg);
+}
+function runCalc(){
+  const out=$('#calc-out'),fig=$('#calc-fig'),m=calc.mode;
+  const get=k=>parseNum(calc.v[k]),bad=x=>!(x>0&&x<=1e6);
+  const msg=function(t){out.innerHTML='<p class="note">'+t+'</p>';fig.textContent='';};
+  if(m==='hyp'){
+    const a=get('ha'),b=get('hb');
+    if(bad(a)||bad(b))return msg('Введите длины катетов: положительные числа, например 6 и 8.');
+    const c=Math.hypot(a,b),sol=solutionCore({a:a,b:b,c:c,unknown:'c'});
+    triSVG(fig,{a:a,b:b,la:'a = '+P(a),lb:'b = '+P(b),lc:'c = ?'});
+    out.innerHTML=solBlock([['Дано:','катеты '+V('a')+' = '+P(a)+' и '+V('b')+' = '+P(b)],['Найти:','гипотенузу '+V('c')],['Решение:',sol.steps],['Ответ:','<span class="ans">'+sol.ans+'</span>']]);
+  }else if(m==='leg'){
+    const c=get('lc'),b=get('lb');
+    if(bad(c)||bad(b))return msg('Введите гипотенузу и известный катет: положительные числа, например 13 и 5.');
+    if(c<=b)return msg('Гипотенуза должна быть длиннее катета. Проверьте числа.');
+    const a=Math.sqrt(c*c-b*b),sol=solutionCore({a:a,b:b,c:c,unknown:'a'});
+    triSVG(fig,{a:a,b:b,la:'a = ?',lb:'b = '+P(b),lc:'c = '+P(c)});
+    out.innerHTML=solBlock([['Дано:','гипотенуза '+V('c')+' = '+P(c)+', катет '+V('b')+' = '+P(b)],['Найти:','катет '+V('a')],['Решение:',sol.steps],['Ответ:','<span class="ans">'+sol.ans+'</span>']]);
+  }else{
+    const s=[get('x'),get('y'),get('z')];
+    if(s.some(bad))return msg('Введите три положительные длины, например 5, 12 и 13.');
+    s.sort(function(p,q){return p-q;});
+    const a=s[0],b=s[1],c=s[2];
+    const given='стороны '+P(s[0])+', '+P(s[1])+' и '+P(s[2]);
+    if(a+b<=c+1e-12){
+      fig.textContent='';
+      out.innerHTML=solBlock([['Дано:',given],['Найти:','какой это треугольник'],['Решение:','<p>Сумма двух меньших сторон: '+P(a)+' + '+P(b)+' = '+P(a+b)+'.</p><p>Она не больше большей стороны '+P(c)+'.</p>'],['Ответ:','<span class="ans">Такого треугольника не существует.</span>']]);
+      return;
+    }
+    const L=clean(a*a+b*b),R=clean(c*c),eps=1e-9*Math.max(L,R);
+    const rel=Math.abs(L-R)<=eps?'=':(L>R?'>':'<');
+    const verdict=rel==='='?'Треугольник прямоугольный.':(rel==='>'?'Треугольник остроугольный.':'Треугольник тупоугольный.');
+    const why=rel==='='?'Выполняется равенство, по обратной теореме прямой угол есть.':(rel==='>'?'Квадрат большей стороны меньше суммы квадратов двух других: все углы острые.':'Квадрат большей стороны больше суммы квадратов двух других: один угол тупой.');
+    barsSVG(fig,a,b,c);
+    out.innerHTML=solBlock([['Дано:',given],['Найти:','прямоугольный ли треугольник'],['Решение:',
+      '<p>Большая сторона: '+P(c)+'. Остальные две: '+P(a)+' и '+P(b)+'.</p>'+
+      '<p>Треугольник существует: '+P(a)+' + '+P(b)+' = '+P(a+b)+' &gt; '+P(c)+'.</p>'+
+      '<p>'+N2(a,'a')+' + '+N2(b,'b')+' = '+P(a*a)+' + '+P(b*b)+' = '+P(L)+'</p>'+
+      '<p>'+N2(c,'c')+' = '+P(R)+'</p>'+
+      '<p>'+P(L)+' '+(rel==='>'?'&gt;':rel==='<'?'&lt;':'=')+' '+P(R)+'</p>'],
+      ['Ответ:','<div class="verdict'+(rel==='='?' right':'')+'">'+verdict+' '+why+'</div>']]);
+  }
+}
+function bindCalc(){
+  $$('#calc-modes button').forEach(function(btn){btn.addEventListener('click',function(){
+    calc.mode=btn.dataset.mode;
+    $$('#calc-modes button').forEach(function(b2){b2.setAttribute('aria-pressed',String(b2===btn));});
+    buildFields();runCalc();
+  });});
+  buildFields();runCalc();
+}
+
+/* ============ ТРЕНАЖЁР ============ */
+const TRIPLES=[[3,4,5],[5,12,13],[8,15,17],[7,24,25],[20,21,29],[9,40,41]];
+function textFor(a,b,c,u){
+  if(u==='c')return 'Катеты прямоугольного треугольника равны '+P(a)+' и '+P(b)+'. Найдите гипотенузу.';
+  const known=u==='a'?b:a;
+  return 'Гипотенуза прямоугольного треугольника равна '+P(c)+', один из катетов равен '+P(known)+'. Найдите второй катет.';
+}
+function genL1(){
+  const base=pick(TRIPLES.slice(0,4)),k=1+rnd(Math.min(4,Math.floor(60/base[2])));
+  let a=base[0]*k,b=base[1]*k;const c=base[2]*k;
+  if(Math.random()<.5){const t=a;a=b;b=t;}
+  const u=pick(['c','c','a','b']);
+  return{a:a,b:b,c:c,unknown:u,approx:false,text:textFor(a,b,c,u)};
+}
+function genL2(){
+  for(;;){
+    const u=pick(['c','c','a','b']);let a,b,c;
+    if(u==='c'){
+      a=2+rnd(12);b=2+rnd(12);const n=a*a+b*b;
+      if(Number.isInteger(Math.sqrt(n)))continue;
+      c=Math.sqrt(n);
+    }else{
+      const known=2+rnd(11),cc=known+1+rnd(9),n=cc*cc-known*known;
+      if(n<=0||Number.isInteger(Math.sqrt(n)))continue;
+      c=cc;
+      if(u==='a'){b=known;a=Math.sqrt(n);}else{a=known;b=Math.sqrt(n);}
+    }
+    return{a:a,b:b,c:c,unknown:u,approx:true,text:textFor(a,b,c,u)+' Округлите до десятых.'};
+  }
+}
+const T3=[
+  function(){
+    const s=pick([.5,1]),a=3*s,b=4*s,c=5*s,u=pick(['a','b']);
+    const text=u==='b'
+      ?'Лестница длиной '+P(c)+' м приставлена к вертикальной стене. Нижний конец стоит в '+P(a)+' м от стены. На какой высоте находится верхний конец лестницы? Ответ в метрах.'
+      :'Лестница длиной '+P(c)+' м приставлена к вертикальной стене. Верхний конец находится на высоте '+P(b)+' м. Найдите расстояние от нижнего конца до стены. Ответ в метрах.';
+    return{a:a,b:b,c:c,unknown:u,approx:false,text:text,note:'Стена, земля и лестница образуют прямоугольный треугольник. Лестница лежит напротив прямого угла, значит она гипотенуза.'};
+  },
+  function(){
+    const base=pick(TRIPLES.slice(0,4)),k=1+rnd(Math.min(4,Math.floor(40/base[2])));
+    let a=base[0]*k,b=base[1]*k;const c=base[2]*k;
+    if(Math.random()<.5){const t=a;a=b;b=t;}
+    return{a:a,b:b,c:c,unknown:'c',approx:false,text:'Участок прямоугольной формы имеет стороны '+a+' м и '+b+' м. Найдите длину его диагонали. Ответ в метрах.',note:'Диагональ делит прямоугольник на два прямоугольных треугольника. Стороны участка катеты, диагональ гипотенуза.'};
+  },
+  function(){
+    const base=pick(TRIPLES.slice(0,2)),k=1+rnd(2),a=base[0]*k,b=base[1]*k,c=base[2]*k;
+    return{a:a,b:b,c:c,unknown:'c',approx:false,text:'Вертикальный столб высотой '+b+' м закреплён тросом. Трос идёт от верхушки столба к земле и крепится на расстоянии '+a+' м от основания столба. Найдите длину троса. Ответ в метрах.',note:'Столб перпендикулярен земле. Столб и расстояние до крепления катеты, трос гипотенуза.'};
+  },
+  function(){
+    const base=pick(TRIPLES.slice(0,3)),k=1+rnd(2),a=base[0]*k,b=base[1]*k,c=base[2]*k;
+    return{a:a,b:b,c:c,unknown:'c',approx:false,text:'Турист прошёл '+a+' км на север, затем '+b+' км на восток. Найдите расстояние от места старта до места остановки по прямой. Ответ в километрах.',note:'Север и восток перпендикулярны, поэтому два участка пути катеты, а прямое расстояние гипотенуза.'};
+  },
+  function(){
+    const s=3+rnd(10);
+    return{a:s,b:s,c:s*Math.SQRT2,unknown:'c',approx:true,text:'Сторона квадрата равна '+s+' см. Найдите его диагональ. Округлите до десятых.',note:'Диагональ делит квадрат на два равных прямоугольных треугольника. Катеты равны стороне квадрата.'};
+  },
+  function(){
+    const base=pick(TRIPLES.slice(0,3)),k=1+rnd(2);
+    let a=base[0]*k,b=base[1]*k;const c=base[2]*k;
+    if(Math.random()<.5){const t=a;a=b;b=t;}
+    return{a:a,b:b,c:c,unknown:'b',approx:false,text:'В равнобедренном треугольнике боковая сторона равна '+c+' см, а основание равно '+2*a+' см. Найдите высоту, проведённую к основанию. Ответ в сантиметрах.',note:'Высота к основанию делит треугольник на два равных прямоугольных. Боковая сторона гипотенуза, половина основания ('+a+' см) катет, высота второй катет.'};
+  },
+  function(){
+    const base=pick(TRIPLES.slice(0,4));
+    let dx=base[0],dy=base[1];if(Math.random()<.5){const t=dx;dx=dy;dy=t;}
+    const x1=rnd(7)-3,y1=rnd(7)-3,x2=x1+(Math.random()<.5?1:-1)*dx,y2=y1+(Math.random()<.5?1:-1)*dy;
+    return{a:dx,b:dy,c:base[2],unknown:'c',approx:false,text:'Найдите длину отрезка AB, если A('+P(x1)+'; '+P(y1)+') и B('+P(x2)+'; '+P(y2)+').',note:'Разности координат по осям ('+dx+' и '+dy+') катеты прямоугольного треугольника, а отрезок AB гипотенуза.'};
+  }
+];
+const pr={lvl:store.get('lvl',1),cur:null,attempts:0,done:false,counted:false};
+let stats=store.get('stats',{solved:0,correct:0,streak:0,best:0,recent:[]});
+function renderStats(){
+  const rec=$('#recent');rec.textContent='';
+  for(let i=0;i<10;i++){
+    const v=stats.recent[i];
+    rec.append(h('span',{class:v===true?'y':v===false?'n':'',text:v===true?'✓':v===false?'✕':''}));
+  }
+  $('#stats-line').textContent='Решено: '+stats.solved+'. С первого раза верно: '+stats.correct+'. Серия: '+stats.streak+', рекорд: '+stats.best+'.';
+}
+function countOnce(ok){
+  if(pr.counted)return;pr.counted=true;
+  stats.solved++;
+  if(ok){stats.correct++;stats.streak++;if(stats.streak>stats.best)stats.best=stats.streak;}else stats.streak=0;
+  stats.recent=stats.recent.concat([ok]).slice(-10);
+  store.set('stats',stats);renderStats();
+}
+function showFig(p){triSVG($('#prob-fig'),{a:p.a,b:p.b,la:'a = '+(p.unknown==='a'?'?':P(p.a)),lb:'b = '+(p.unknown==='b'?'?':P(p.b)),lc:'c = '+(p.unknown==='c'?'?':P(p.c))});}
+function finishProb(){
+  pr.done=true;
+  $('#prob-ans').disabled=true;$('#btn-check').disabled=true;
+  const nx=$('#btn-next');nx.textContent='Следующая задача';nx.className='btn';
+  if(pr.cur.level===3)showFig(pr.cur);
+}
+function solutionHTML(p){
+  const s=solutionCore(p);
+  const unk=p.unknown==='c'?'гипотенузу c':'катет '+p.unknown;
+  return solBlock([['Найти:',unk],['Решение:',(p.note?'<p>'+p.note+'</p>':'')+s.steps],['Ответ:','<span class="ans">'+s.ans+'</span>']]);
+}
+function newProb(){
+  const p=(pr.lvl===1?genL1:pr.lvl===2?genL2:function(){return pick(T3)();})();
+  p.level=pr.lvl;p.answer=p[p.unknown];p.tol=p.approx?0.0501:0.001;
+  pr.cur=p;pr.attempts=0;pr.done=false;pr.counted=false;
+  $('#prob-text').textContent=p.text;
+  $('#prob-ans').value='';$('#prob-ans').disabled=false;$('#btn-check').disabled=false;
+  $('#prob-fb').textContent='';$('#prob-sol').textContent='';
+  const nx=$('#btn-next');nx.textContent='Пропустить';nx.className='btn ghost';
+  if(pr.lvl<3)showFig(p);else $('#prob-fig').textContent='';
+  $$('#lvl-seg button').forEach(function(b2){b2.setAttribute('aria-pressed',String(+b2.dataset.lvl===pr.lvl));});
+}
+function bindPractice(){
+  $$('#lvl-seg button').forEach(function(btn){btn.addEventListener('click',function(){pr.lvl=+btn.dataset.lvl;store.set('lvl',pr.lvl);newProb();});});
+  $('#prob-form').addEventListener('submit',function(e){
+    e.preventDefault();
+    if(pr.done)return;
+    const x=parseNum($('#prob-ans').value),fb=$('#prob-fb'),p=pr.cur;
+    if(!isFinite(x)){fb.innerHTML='<div class="fb bad">Введите число, например 12 или 8,6.</div>';return;}
+    pr.attempts++;
+    if(Math.abs(x-p.answer)<=p.tol){
+      countOnce(pr.attempts===1);
+      fb.innerHTML='<div class="fb ok"><strong>Верно!</strong> Ответ: '+P(p.approx?Math.round(p.answer*10)/10:p.answer)+'.</div>';
+      $('#prob-sol').innerHTML='<details><summary>Посмотреть решение</summary>'+solutionHTML(p)+'</details>';
+      finishProb();
+    }else{
+      countOnce(false);
+      const near=p.approx&&Math.abs(x-p.answer)<.5;
+      fb.innerHTML='<div class="fb bad">'+(near?'Близко. Проверьте округление до десятых.':'Пока неверно. Проверьте, какая сторона неизвестна, и откройте подсказку.')+'</div>';
+    }
+  });
+  $('#btn-hint').addEventListener('click',function(){
+    const p=pr.cur;let t;
+    if(p.level===3){t=p.note;showFig(p);}
+    else if(p.unknown==='c')t='Неизвестна гипотенуза. Сложите квадраты катетов и извлеките корень: c² = a² + b².';
+    else t='Неизвестен катет. Из квадрата гипотенузы вычтите квадрат известного катета, потом извлеките корень: '+p.unknown+'² = c² − '+(p.unknown==='a'?'b':'a')+'².';
+    $('#prob-fb').innerHTML='<div class="note">'+t+'</div>';
+  });
+  $('#btn-show').addEventListener('click',function(){
+    countOnce(false);
+    $('#prob-sol').innerHTML=solutionHTML(pr.cur);
+    finishProb();
+  });
+  $('#btn-next').addEventListener('click',newProb);
+  let armed=false,timer=0;
+  $('#reset-stats').addEventListener('click',function(){
+    const b2=$('#reset-stats');
+    if(!armed){armed=true;b2.textContent='Нажмите ещё раз, чтобы сбросить';timer=setTimeout(function(){armed=false;b2.textContent='Сбросить статистику';},3500);return;}
+    clearTimeout(timer);armed=false;b2.textContent='Сбросить статистику';
+    stats={solved:0,correct:0,streak:0,best:0,recent:[]};store.set('stats',stats);renderStats();
+  });
+  renderStats();newProb();
+}
+
+/* ============ ТЕСТ ============ */
+const BANK=[
+  {q:'Как называется сторона прямоугольного треугольника, лежащая напротив прямого угла?',o:['Катет','Гипотенуза','Медиана','Высота'],a:1,e:'Гипотенуза лежит напротив прямого угла. Две другие стороны называются катетами.'},
+  {q:'Катеты прямоугольного треугольника равны 6 и 8. Чему равна гипотенуза?',o:['10','14','12','100'],a:0,e:'c² = 6² + 8² = 36 + 64 = 100, поэтому c = 10.'},
+  {q:'Гипотенуза равна 13, один катет равен 5. Чему равен второй катет?',o:['8','12','18','144'],a:1,e:'b² = 13² − 5² = 169 − 25 = 144, поэтому b = 12.'},
+  {q:'Какое равенство верно для прямоугольного треугольника с катетами a, b и гипотенузой c?',o:['a + b = c','a² + b² = c²','a² + c² = b²','a² − b² = c²'],a:1,e:'Теорема Пифагора: квадрат гипотенузы равен сумме квадратов катетов.'},
+  {q:'Стороны треугольника равны 7, 24 и 25. Он прямоугольный?',o:['Да, потому что 7² + 24² = 25²','Нет, потому что 7 + 24 ≠ 25','Нет, потому что 7² + 24² ≠ 25²','Нельзя определить'],a:0,e:'49 + 576 = 625 = 25². По обратной теореме треугольник прямоугольный.'},
+  {q:'Стороны треугольника равны 4, 5 и 6. Какой это треугольник?',o:['Прямоугольный','Остроугольный','Тупоугольный','Такого треугольника нет'],a:1,e:'4² + 5² = 41, а 6² = 36. Квадрат большей стороны меньше суммы квадратов двух других, значит все углы острые.'},
+  {q:'Какая из троек чисел является пифагоровой?',o:['2, 3, 4','5, 6, 7','9, 12, 15','4, 5, 8'],a:2,e:'9² + 12² = 81 + 144 = 225 = 15². Это тройка 3, 4, 5, умноженная на 3.'},
+  {q:'Чему равна диагональ квадрата со стороной 1?',o:['1','√2','2','√3'],a:1,e:'d² = 1² + 1² = 2, поэтому d = √2 ≈ 1,41.'},
+  {q:'Лестница длиной 5 м стоит у стены. Нижний конец находится в 3 м от стены. На какой высоте верхний конец?',o:['2 м','4 м','5,8 м','8 м'],a:1,e:'h² = 5² − 3² = 25 − 9 = 16, поэтому h = 4 м.'},
+  {q:'Диагональ прямоугольника со сторонами 9 и 12 равна',o:['15','21','108','√21'],a:0,e:'d² = 81 + 144 = 225, поэтому d = 15.'},
+  {q:'Может ли гипотенуза быть короче катета?',o:['Да, если угол острый','Да, если катеты малы','Нет, гипотенуза всегда длиннее каждого катета','Только если катеты равны'],a:2,e:'c² = a² + b² больше, чем a² и чем b², поэтому c больше любого катета.'},
+  {q:'Катеты равны 2 и 3. Чему равен квадрат гипотенузы?',o:['5','13','25','√13'],a:1,e:'c² = 2² + 3² = 4 + 9 = 13.'},
+  {q:'Стороны треугольника равны 8, 15 и 17. Что можно о нём сказать?',o:['Он остроугольный','Он тупоугольный','Он прямоугольный','Он не существует'],a:2,e:'8² + 15² = 64 + 225 = 289 = 17².'},
+  {q:'Катеты равны 10 и 24. Найдите гипотенузу.',o:['26','34','14','28'],a:0,e:'c² = 100 + 576 = 676, поэтому c = 26.'},
+  {q:'Найдите расстояние между точками (0; 0) и (6; 8) на координатной плоскости.',o:['14','10','7','48'],a:1,e:'d = √(6² + 8²) = √100 = 10.'},
+  {q:'Какое утверждение является обратной теоремой Пифагора?',o:['В прямоугольном треугольнике a² + b² = c²','Если в треугольнике a² + b² = c², то он прямоугольный','Если треугольник прямоугольный, то его стороны равны','Сумма углов треугольника равна 180°'],a:1,e:'Обратная теорема позволяет по сторонам понять, есть ли в треугольнике прямой угол.'},
+  {q:'В равнобедренном треугольнике боковая сторона 10 см, основание 12 см. Чему равна высота, проведённая к основанию?',o:['4 см','8 см','√44 см','11 см'],a:1,e:'Высота делит основание пополам: катет 6, гипотенуза 10. h² = 100 − 36 = 64, h = 8.'},
+  {q:'Стороны треугольника равны 2, 3 и 4. Какой это треугольник?',o:['Прямоугольный','Остроугольный','Тупоугольный','Равносторонний'],a:2,e:'2² + 3² = 13, а 4² = 16. Квадрат большей стороны больше суммы квадратов двух других, значит один угол тупой.'},
+  {q:'Турист прошёл 9 км на север и 12 км на восток. Как далеко он от старта по прямой?',o:['15 км','21 км','3 км','√21 км'],a:0,e:'Участки пути катеты 9 и 12, гипотенуза равна 15 км.'},
+  {q:'По какой формуле найти катет a, если известны гипотенуза c и катет b?',o:['a = √(c² + b²)','a = c − b','a = √(c² − b²)','a = c² − b²'],a:2,e:'Из a² + b² = c² получаем a² = c² − b², затем извлекаем корень.'}
+];
+const test={state:'start',items:[],i:0,sel:[]};
+function buildItems(){
+  return shuffle(BANK).slice(0,10).map(function(q){
+    const order=shuffle([0,1,2,3]);
+    return{q:q.q,opts:order.map(function(i){return q.o[i];}),correct:order.indexOf(q.a),e:q.e};
+  });
+}
+function grade(score,n){const p=score/n;return p>=.9?5:p>=.7?4:p>=.5?3:2;}
+function renderTest(){
+  const root=$('#test-root');root.textContent='';
+  if(test.state==='start'){
+    const best=store.get('testBest',null);
+    root.append(
+      h('h2',{text:'Контрольный тест'}),
+      h('div',{class:'card'},
+        h('p',{text:'Десять вопросов, у каждого четыре варианта ответа. Подсказок нет, поэтому возьмите ручку и бумагу. Результат появится в конце.'}),
+        h('label',{class:'field'},h('span',{text:'Ваше имя (по желанию)'}),h('input',{type:'text',id:'test-name',autocomplete:'off',value:store.get('name',''),oninput:function(e){store.set('name',e.target.value);}})),
+        best?h('p',{class:'fine',text:'Лучший результат: '+best.score+' из '+best.n+', '+best.date+'.'}):null,
+        h('div',null,h('button',{class:'btn',type:'button',onclick:function(){test.items=buildItems();test.i=0;test.sel=[];test.state='q';renderTest();window.scrollTo(0,0);}},'Начать тест'))
+      ));
+  }else if(test.state==='q'){
+    const it=test.items[test.i],n=test.items.length,chosen=test.sel[test.i];
+    const next=h('button',{class:'btn',type:'button',disabled:chosen==null,onclick:function(){
+      if(test.sel[test.i]==null)return;
+      if(test.i<n-1){test.i++;renderTest();window.scrollTo(0,0);}else{test.state='result';renderTest();window.scrollTo(0,0);}
+    }},test.i<n-1?'Дальше':'Завершить');
+    const opts=it.opts.map(function(o,idx){
+      return h('label',{class:'opt'},h('input',{type:'radio',name:'opt',value:idx,checked:chosen===idx,onchange:function(){test.sel[test.i]=idx;next.disabled=false;}}),h('span',{text:o}));
+    });
+    root.append(
+      h('div',{class:'prog',role:'progressbar','aria-valuemin':0,'aria-valuemax':n,'aria-valuenow':test.i+1},h('i',{style:'width:'+((test.i+1)/n*100)+'%'})),
+      h('p',{class:'fine',text:'Вопрос '+(test.i+1)+' из '+n}),
+      h('div',{class:'card'},h('fieldset',{class:'opts'},h('legend',{text:it.q}),opts),next));
+  }else{
+    const n=test.items.length;
+    const score=test.items.filter(function(it,i){return test.sel[i]===it.correct;}).length;
+    const g=grade(score,n),name=(store.get('name','')||'').trim();
+    const date=new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
+    const best=store.get('testBest',null);
+    if(!best||score>best.score)store.set('testBest',{score:score,n:n,date:date});
+    const misses=test.items.map(function(it,i){return{it:it,i:i};}).filter(function(x){return test.sel[x.i]!==x.it.correct;});
+    root.append(
+      h('div',{class:'card result'},
+        h('p',{class:'fine',text:(name?name+', ':'')+date}),
+        h('h2',{text:'Верно: '+score+' из '+n}),
+        h('div',{class:'mark-grade','aria-label':'Оценка '+g,text:String(g)}),
+        h('p',{class:'fine',text:'Шкала: 9–10 верных ответов — «5», 7–8 — «4», 5–6 — «3», меньше — «2».'}),
+        h('div',{class:'row'},
+          h('button',{class:'btn',type:'button',onclick:function(){test.state='start';renderTest();window.scrollTo(0,0);}},'Пройти ещё раз'),
+          h('a',{class:'btn ghost',href:'#practice'},'К тренажёру'))),
+      misses.length?h('h3',{text:'Разберём ошибки'}):h('p',{class:'lead',text:'Ошибок нет. Отличная работа.'}),
+      misses.map(function(x){
+        const my=test.sel[x.i];
+        return h('div',{class:'card miss'},
+          h('p',{text:(x.i+1)+'. '+x.it.q}),
+          h('p',{class:'fine',text:'Ваш ответ: '+(my==null?'нет ответа':x.it.opts[my])}),
+          h('p',{text:'Верный ответ: '+x.it.opts[x.it.correct]}),
+          h('p',{class:'fine',text:x.it.e}));
+      }));
+  }
+}
+
+/* ============ ШПАРГАЛКА ============ */
+function buildCheat(){
+  const rows=[[3,4,5],[6,8,10],[5,12,13],[8,15,17],[7,24,25],[20,21,29],[12,35,37],[9,40,41]];
+  $('#triples').innerHTML=rows.map(function(r){
+    return '<tr><td>'+r[0]+' и '+r[1]+'</td><td>'+r[2]+'</td><td>'+r[0]*r[0]+' + '+r[1]*r[1]+' = '+r[2]*r[2]+'</td></tr>';
+  }).join('');
+  let sq='';
+  for(let i=1;i<=25;i++)sq+='<div class="sq-cell">'+i+'² = '+i*i+'</div>';
+  $('#sq-table').innerHTML=sq;
+}
+
+/* ---------- запуск ---------- */
+bindTheory();bindProof();bindCalc();bindPractice();renderTest();buildCheat();
+addEventListener('hashchange',route);
+route();
+})();
+</script>
+
+</body>
+</html>
