@@ -489,8 +489,8 @@ function triSVG(host,o){
 
 /* ---------- маршрутизация ---------- */
 const VIEWS=['theory','proof','calc','practice','test','cheat'];
-function route(){
-  let name=(location.hash||'').slice(1);
+function route(n){
+  let name=typeof n==='string'?n:(location.hash||'').slice(1);
   if(VIEWS.indexOf(name)<0)name='theory';
   VIEWS.forEach(function(v){$('#view-'+v).hidden=(v!==name);});
   $$('.tabs a').forEach(function(a){if(a.dataset.view===name)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
@@ -935,7 +935,16 @@ function buildCheat(){
 
 /* ---------- запуск ---------- */
 bindTheory();bindProof();bindCalc();bindPractice();renderTest();buildCheat();
-addEventListener('hashchange',route);
+document.addEventListener('click',function(e){
+  const a=e.target.closest&&e.target.closest('a[href^="#"]');
+  if(!a)return;
+  const n=a.getAttribute('href').slice(1);
+  if(VIEWS.indexOf(n)<0)return;
+  e.preventDefault();
+  route(n);
+  try{history.replaceState(null,'','#'+n);}catch(err){try{location.hash=n;}catch(e2){}}
+});
+addEventListener('hashchange',function(){route();});
 route();
 })();
 </script>
